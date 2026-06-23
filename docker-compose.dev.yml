@@ -1,0 +1,28 @@
+version: '3.9'
+
+# Development override — builds images locally instead of pulling from registry
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  backend:
+    image: seo-audit-backend:dev
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    command: ["node", "-e", "require('./server')"]
+
+  frontend:
+    image: seo-audit-frontend:dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+  mongo:
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: devpassword
