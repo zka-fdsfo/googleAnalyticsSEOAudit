@@ -73,10 +73,13 @@ const aggGSC = (rowMap, startISO, endISO) => {
 
   const totalClicks      = rows.reduce((s, r) => s + (r.clicks      || 0), 0);
   const totalImpressions = rows.reduce((s, r) => s + (r.impressions || 0), 0);
-  const posRows          = rows.filter((r) => (r.position || 0) > 0);
-  const avgPosition      = posRows.length
-    ? posRows.reduce((s, r) => s + r.position, 0) / posRows.length
-    : 0;
+
+  // Impression-weighted average position — matches Google Search Console's calculation.
+  // Simple arithmetic average would always diverge from Google's displayed value.
+  const posRows        = rows.filter((r) => (r.position || 0) > 0);
+  const weightedPosSum = posRows.reduce((s, r) => s + r.position * (r.impressions || 1), 0);
+  const weightSum      = posRows.reduce((s, r) => s + (r.impressions || 1), 0);
+  const avgPosition    = weightSum > 0 ? weightedPosSum / weightSum : 0;
 
   return {
     clicks:      totalClicks,
@@ -159,11 +162,14 @@ const getGSCComparison = async (websiteId, userId, periodDays = 28) => {
   today.setHours(23, 59, 59, 999);
 
   const curEnd   = fmtISO(today);
+  // Current period: [today - periodDays + 1, today]  → exactly periodDays days inclusive
   const curStart = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays + 1); return fmtISO(d); })();
-  const prevEnd  = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays);     return fmtISO(d); })();
-  const prevStart= (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays * 2); return fmtISO(d); })();
+  // Previous period: same length, immediately before current
+  // prevEnd  = curStart - 1 day
+  // prevStart= prevEnd  - periodDays + 1   → same window size, no off-by-one
+  const prevEnd  = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays);         return fmtISO(d); })();
+  const prevStart= (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays * 2 + 1); return fmtISO(d); })();
 
-  // Load snapshots far enough back to cover both periods + one buffer window.
   const since = new Date(today);
   since.setDate(since.getDate() - periodDays * 2 - 30);
 
@@ -218,9 +224,9 @@ const getAnalyticsComparison = async (websiteId, userId, periodDays = 30) => {
   today.setHours(23, 59, 59, 999);
 
   const curEnd   = fmtISO(today);
-  const curStart = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays + 1); return fmtISO(d); })();
-  const prevEnd  = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays);     return fmtISO(d); })();
-  const prevStart= (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays * 2); return fmtISO(d); })();
+  const curStart = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays + 1);     return fmtISO(d); })();
+  const prevEnd  = (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays);         return fmtISO(d); })();
+  const prevStart= (() => { const d = new Date(today); d.setDate(d.getDate() - periodDays * 2 + 1); return fmtISO(d); })();
 
   const since = new Date(today);
   since.setDate(since.getDate() - periodDays * 2 - 35);

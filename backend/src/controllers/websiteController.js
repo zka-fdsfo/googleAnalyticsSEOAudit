@@ -74,6 +74,19 @@ const sync = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /api/websites/:id/sync/status — lightweight sync-status poll
+const getSyncStatus = async (req, res, next) => {
+  try {
+    const website = await getWebsite(req.params.id, req.user._id);
+    if (!website) return res.status(404).json({ error: 'Website not found.' });
+    res.json({
+      syncStatus:   website.syncStatus,
+      syncError:    website.syncError || null,
+      lastSyncedAt: website.lastSyncedAt || null,
+    });
+  } catch (err) { next(err); }
+};
+
 // GET /api/websites/:id/analytics — latest snapshot
 const getAnalytics = async (req, res, next) => {
   try {
@@ -127,4 +140,4 @@ const getGSCTrendHandler = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { listWebsites, getOne, discover, update, remove, sync, getAnalytics, getAnalyticsTrendHandler, getGSC, getGSCTrendHandler };
+module.exports = { listWebsites, getOne, discover, update, remove, sync, getSyncStatus, getAnalytics, getAnalyticsTrendHandler, getGSC, getGSCTrendHandler };

@@ -19,150 +19,121 @@ const syncAnalyticsSnapshot = async (website, user) => {
   const auth = createOAuth2Client(user);
   const analyticsData = google.analyticsdata({ version: 'v1beta', auth });
   const propertyId = website.ga4.propertyId;
+  const prop = `properties/${propertyId}`;
+  const base = { dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }] };
 
-  const [mainReport, trafficReport, pageReport, deviceReport, countryReport, timeseriesReport,
-         browserReport, landingPageReport, exitPageReport, cityReport, conversionReport] =
-    await Promise.all([
-      // Overview
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          metrics: [
-            { name: 'activeUsers' },
-            { name: 'newUsers' },
-            { name: 'sessions' },
-            { name: 'engagedSessions' },
-            { name: 'bounceRate' },
-            { name: 'engagementRate' },
-            { name: 'averageSessionDuration' },
-            { name: 'screenPageViews' },
-          ],
-        },
-      }),
-      // Traffic sources
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'sessionDefaultChannelGroup' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
-          orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 10,
-        },
-      }),
-      // Top pages
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
-          metrics:    [{ name: 'screenPageViews' }, { name: 'activeUsers' }, { name: 'bounceRate' }],
-          orderBys:   [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-          limit: 20,
-        },
-      }),
-      // Devices
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'deviceCategory' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
-        },
-      }),
-      // Countries
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'country' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
-          orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 20,
-        },
-      }),
-      // Daily timeseries
-      // Daily timeseries
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'date' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'screenPageViews' }],
-          orderBys:   [{ dimension: { dimensionName: 'date' } }],
-        },
-      }),
-      // Browsers
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'browser' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
-          orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 10,
-        },
-      }),
-      // Landing pages
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'landingPagePlusQueryString' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'bounceRate' }],
-          orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 20,
-        },
-      }),
-      // Exit pages
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'exitPage' }],
-          metrics:    [{ name: 'exits' }, { name: 'screenPageViews' }],
-          orderBys:   [{ metric: { metricName: 'exits' }, desc: true }],
-          limit: 20,
-        },
-      }),
-      // Cities
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'city' }, { name: 'country' }],
-          metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
-          orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 30,
-        },
-      }),
-      // Key events (conversions)
-      analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
-        requestBody: {
-          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-          dimensions: [{ name: 'eventName' }],
-          metrics:    [{ name: 'eventCount' }, { name: 'conversions' }],
-          orderBys:   [{ metric: { metricName: 'conversions' }, desc: true }],
-          limit: 10,
-        },
-      }),
-    ]);
+  const run = (requestBody) =>
+    analyticsData.properties.runReport({ property: prop, requestBody: { ...base, ...requestBody } });
 
-  const mv = (report, idx) => parseFloat(report.data?.rows?.[0]?.metricValues?.[idx]?.value) || 0;
+  // ── CORE: must succeed — if these fail, the whole snapshot is invalid ────────
+  const [mainReport, timeseriesReport] = await Promise.all([
+    run({
+      metrics: [
+        { name: 'activeUsers' }, { name: 'newUsers' },   { name: 'sessions' },
+        { name: 'engagedSessions' }, { name: 'bounceRate' }, { name: 'engagementRate' },
+        { name: 'averageSessionDuration' }, { name: 'screenPageViews' },
+      ],
+    }),
+    run({
+      dimensions: [{ name: 'date' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'screenPageViews' }],
+      orderBys:   [{ dimension: { dimensionName: 'date' } }],
+    }),
+  ]);
 
-  // Derived metrics
-  const users    = Math.round(mv(mainReport, 0));
-  const newUsers = Math.round(mv(mainReport, 1));
-  const sessions = Math.round(mv(mainReport, 2));
-  const pageViews = Math.round(mv(mainReport, 7));
-  const totalConversions = (conversionReport.data?.rows || []).reduce(
-    (s, r) => s + (parseFloat(r.metricValues[1]?.value) || 0), 0
-  );
-  const totalEvents = (conversionReport.data?.rows || []).reduce(
-    (s, r) => s + (parseInt(r.metricValues[0]?.value) || 0), 0
-  );
+  // ── OPTIONAL: fail silently — not all GA4 property types support every dimension ──
+  const [
+    trafficRes, pageRes, deviceRes, countryRes,
+    browserRes, landingRes, exitRes, cityRes, conversionRes,
+  ] = await Promise.allSettled([
+    // Traffic sources
+    run({
+      dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 10,
+    }),
+    // Top pages
+    run({
+      dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+      metrics:    [{ name: 'screenPageViews' }, { name: 'activeUsers' }, { name: 'bounceRate' }],
+      orderBys:   [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+      limit: 20,
+    }),
+    // Devices
+    run({
+      dimensions: [{ name: 'deviceCategory' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
+    }),
+    // Countries
+    run({
+      dimensions: [{ name: 'country' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 20,
+    }),
+    // Browsers — may be unsupported for pure app properties
+    run({
+      dimensions: [{ name: 'browser' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 10,
+    }),
+    // Landing pages — not available for app-only properties
+    run({
+      dimensions: [{ name: 'landingPagePlusQueryString' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'bounceRate' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 20,
+    }),
+    // Exit pages — 'exits' metric not supported by some property types
+    run({
+      dimensions: [{ name: 'exitPage' }],
+      metrics:    [{ name: 'exits' }, { name: 'screenPageViews' }],
+      orderBys:   [{ metric: { metricName: 'exits' }, desc: true }],
+      limit: 20,
+    }),
+    // Cities
+    run({
+      dimensions: [{ name: 'city' }, { name: 'country' }],
+      metrics:    [{ name: 'sessions' }, { name: 'activeUsers' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 30,
+    }),
+    // Conversions — empty or missing for properties with no key events configured
+    run({
+      dimensions: [{ name: 'eventName' }],
+      metrics:    [{ name: 'eventCount' }, { name: 'conversions' }],
+      orderBys:   [{ metric: { metricName: 'conversions' }, desc: true }],
+      limit: 10,
+    }),
+  ]);
+
+  // Helper: extract rows from an allSettled result, defaulting to [] on rejection
+  const rows = (settled) =>
+    settled.status === 'fulfilled' ? (settled.value?.data?.rows || []) : [];
+
+  // Log any optional failures for debugging without crashing the sync
+  [
+    [trafficRes, 'trafficSources'], [pageRes, 'topPages'], [deviceRes, 'devices'],
+    [countryRes, 'countries'], [browserRes, 'browsers'], [landingRes, 'landingPages'],
+    [exitRes, 'exitPages'], [cityRes, 'cities'], [conversionRes, 'conversions'],
+  ].forEach(([r, name]) => {
+    if (r.status === 'rejected') {
+      console.warn(`[Snapshot] GA4 optional report skipped for ${website.domain} (${name}): ${r.reason?.message}`);
+    }
+  });
+
+  const mv = (idx) => parseFloat(mainReport.data?.rows?.[0]?.metricValues?.[idx]?.value) || 0;
+
+  const users    = Math.round(mv(0));
+  const newUsers = Math.round(mv(1));
+  const sessions = Math.round(mv(2));
+  const pageViews= Math.round(mv(7));
+
+  const convRows = rows(conversionRes);
+  const totalConversions = convRows.reduce((s, r) => s + (parseFloat(r.metricValues[1]?.value) || 0), 0);
+  const totalEvents      = convRows.reduce((s, r) => s + (parseInt(r.metricValues[0]?.value)  || 0), 0);
 
   const snapshot = {
     websiteId: website._id,
@@ -173,34 +144,34 @@ const syncAnalyticsSnapshot = async (website, user) => {
       newUsers,
       returningUsers:     Math.max(0, users - newUsers),
       sessions,
-      engagedSessions:    Math.round(mv(mainReport, 3)),
-      bounceRate:         parseFloat((mv(mainReport, 4) * 100).toFixed(2)),
-      engagementRate:     parseFloat((mv(mainReport, 5) * 100).toFixed(2)),
-      avgSessionDuration: Math.round(mv(mainReport, 6)),
+      engagedSessions:    Math.round(mv(3)),
+      bounceRate:         parseFloat((mv(4) * 100).toFixed(2)),
+      engagementRate:     parseFloat((mv(5) * 100).toFixed(2)),
+      avgSessionDuration: Math.round(mv(6)),
       pageViews,
       pagesPerSession:    sessions > 0 ? parseFloat((pageViews / sessions).toFixed(2)) : 0,
       conversions:        Math.round(totalConversions),
       conversionRate:     sessions > 0 ? parseFloat((totalConversions / sessions * 100).toFixed(2)) : 0,
       totalEvents:        Math.round(totalEvents),
     },
-    trafficSources: (trafficReport.data?.rows || []).map((r) => ({
+    trafficSources: rows(trafficRes).map((r) => ({
       channel:  r.dimensionValues[0]?.value || 'Other',
       sessions: parseInt(r.metricValues[0]?.value) || 0,
       users:    parseInt(r.metricValues[1]?.value) || 0,
     })),
-    topPages: (pageReport.data?.rows || []).map((r) => ({
+    topPages: rows(pageRes).map((r) => ({
       path:       r.dimensionValues[0]?.value || '/',
       title:      r.dimensionValues[1]?.value || '',
       pageViews:  parseInt(r.metricValues[0]?.value) || 0,
       users:      parseInt(r.metricValues[1]?.value) || 0,
       bounceRate: parseFloat(r.metricValues[2]?.value || 0),
     })),
-    devices: (deviceReport.data?.rows || []).map((r) => ({
+    devices: rows(deviceRes).map((r) => ({
       device:   r.dimensionValues[0]?.value || 'Other',
       sessions: parseInt(r.metricValues[0]?.value) || 0,
       users:    parseInt(r.metricValues[1]?.value) || 0,
     })),
-    countries: (countryReport.data?.rows || []).map((r) => ({
+    countries: rows(countryRes).map((r) => ({
       country:  r.dimensionValues[0]?.value || 'Unknown',
       sessions: parseInt(r.metricValues[0]?.value) || 0,
       users:    parseInt(r.metricValues[1]?.value) || 0,
@@ -211,29 +182,29 @@ const syncAnalyticsSnapshot = async (website, user) => {
       users:     parseInt(r.metricValues[1]?.value) || 0,
       pageViews: parseInt(r.metricValues[2]?.value) || 0,
     })),
-    browsers: (browserReport.data?.rows || []).map((r) => ({
+    browsers: rows(browserRes).map((r) => ({
       browser:  r.dimensionValues[0]?.value || 'Other',
       sessions: parseInt(r.metricValues[0]?.value) || 0,
       users:    parseInt(r.metricValues[1]?.value) || 0,
     })),
-    landingPages: (landingPageReport.data?.rows || []).map((r) => ({
+    landingPages: rows(landingRes).map((r) => ({
       path:       r.dimensionValues[0]?.value || '/',
       sessions:   parseInt(r.metricValues[0]?.value) || 0,
       users:      parseInt(r.metricValues[1]?.value) || 0,
       bounceRate: parseFloat((parseFloat(r.metricValues[2]?.value || 0) * 100).toFixed(2)),
     })),
-    exitPages: (exitPageReport.data?.rows || []).map((r) => ({
+    exitPages: rows(exitRes).map((r) => ({
       path:      r.dimensionValues[0]?.value || '/',
       exits:     parseInt(r.metricValues[0]?.value) || 0,
       pageViews: parseInt(r.metricValues[1]?.value) || 0,
     })),
-    cities: (cityReport.data?.rows || []).map((r) => ({
+    cities: rows(cityRes).map((r) => ({
       city:     r.dimensionValues[0]?.value || 'Unknown',
       country:  r.dimensionValues[1]?.value || 'Unknown',
       sessions: parseInt(r.metricValues[0]?.value) || 0,
       users:    parseInt(r.metricValues[1]?.value) || 0,
     })),
-    conversionEvents: (conversionReport.data?.rows || [])
+    conversionEvents: convRows
       .filter((r) => parseFloat(r.metricValues[1]?.value) > 0)
       .map((r) => ({
         eventName:   r.dimensionValues[0]?.value,
@@ -264,17 +235,39 @@ const syncSearchConsoleSnapshot = async (website, user) => {
   startDate.setDate(endDate.getDate() - 28);
   const fmt = (d) => d.toISOString().split('T')[0];
 
-  const base = { startDate: fmt(startDate), endDate: fmt(endDate), searchType: 'web', dataState: 'final' };
+  // dataState omitted → defaults to 'all', which matches what Google Search Console UI shows.
+  // 'final' would exclude the last 2-3 days of data, making our numbers lower than Google's.
+  const base = { startDate: fmt(startDate), endDate: fmt(endDate), searchType: 'web' };
 
-  const [overviewRes, keywordsRes, pagesRes, devicesRes, countriesRes, timeseriesRes] =
-    await Promise.all([
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: base }),
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: { ...base, dimensions: ['query'],   rowLimit: 500 } }),
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: { ...base, dimensions: ['page'],    rowLimit: 100 } }),
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: { ...base, dimensions: ['device']               } }),
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: { ...base, dimensions: ['country'], rowLimit: 30  } }),
-      searchconsole.searchanalytics.query({ siteUrl, requestBody: { ...base, dimensions: ['date']                 } }),
+  const gscQuery = (requestBody) =>
+    searchconsole.searchanalytics.query({ siteUrl, requestBody });
+
+  // CORE: must succeed
+  const [overviewRes, timeseriesRes] = await Promise.all([
+    gscQuery(base),
+    gscQuery({ ...base, dimensions: ['date'] }),
+  ]);
+
+  // OPTIONAL: secondary breakdowns — fail silently
+  const [keywordsSettled, pagesSettled, devicesSettled, countriesSettled] =
+    await Promise.allSettled([
+      gscQuery({ ...base, dimensions: ['query'],   rowLimit: 500 }),
+      gscQuery({ ...base, dimensions: ['page'],    rowLimit: 100 }),
+      gscQuery({ ...base, dimensions: ['device']               }),
+      gscQuery({ ...base, dimensions: ['country'], rowLimit: 30  }),
     ]);
+
+  const gscRows = (settled) =>
+    settled.status === 'fulfilled' ? (settled.value?.data?.rows || []) : [];
+
+  [
+    [keywordsSettled, 'keywords'], [pagesSettled, 'pages'],
+    [devicesSettled, 'devices'],   [countriesSettled, 'countries'],
+  ].forEach(([r, name]) => {
+    if (r.status === 'rejected') {
+      console.warn(`[Snapshot] GSC optional report skipped for ${website.domain} (${name}): ${r.reason?.message}`);
+    }
+  });
 
   // GSC searchanalytics.query (no dimensions) returns totals in rows[0], NOT at data root.
   let ov = overviewRes.data?.rows?.[0] || {};
@@ -313,10 +306,10 @@ const syncSearchConsoleSnapshot = async (website, user) => {
       ctr:         parseFloat(((ov.ctr || 0) * 100).toFixed(2)),
       position:    parseFloat((ov.position || 0).toFixed(1)),
     },
-    topKeywords: (keywordsRes.data?.rows  || []).map((r) => mapRow(r, ['query'])),
-    topPages:    (pagesRes.data?.rows     || []).map((r) => mapRow(r, ['page'])),
-    devices:     (devicesRes.data?.rows   || []).map((r) => mapRow(r, ['device'])),
-    countries:   (countriesRes.data?.rows || []).map((r) => ({
+    topKeywords: gscRows(keywordsSettled).map((r) => mapRow(r, ['query'])),
+    topPages:    gscRows(pagesSettled).map((r)    => mapRow(r, ['page'])),
+    devices:     gscRows(devicesSettled).map((r)  => mapRow(r, ['device'])),
+    countries:   gscRows(countriesSettled).map((r) => ({
       country:     r.keys[0],
       clicks:      r.clicks      || 0,
       impressions: r.impressions || 0,

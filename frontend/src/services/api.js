@@ -43,6 +43,21 @@ export const getWebsiteGSCTrend       = (id, d)  => api.get(`/websites/${id}/gsc
 const intel = (id, path, params) => api.get(`/websites/${id}/${path}`, { params });
 const intelPatch = (id, path, data) => api.patch(`/websites/${id}/${path}`, data);
 
+// ── GSC debug & manual linking ────────────────────────────────────────────────
+// GET /api/debug/gsc  — full token/scope/API/DB diagnostic
+export const debugGSC         = ()           => api.get('/debug/gsc');
+// GET /api/websites/gsc-sites — list all Search Console sites in the user's account
+export const listGSCSites     = ()           => api.get('/websites/gsc-sites');
+// PUT /api/websites/:id/gsc-link  — manually attach a siteUrl to a website document
+export const linkGSCProperty  = (id, siteUrl)=> api.put(`/websites/${id}/gsc-link`, { siteUrl });
+
+// ── Live direct-query metrics (fresh from Google, no snapshot cache) ─────────
+// forceRefresh=true bypasses the 10-min server-side TTL cache and re-queries Google APIs
+export const getLiveMetrics = (id, startDate, endDate, { forceRefresh = false } = {}) =>
+  intel(id, 'live-metrics', { startDate, endDate, ...(forceRefresh ? { forceRefresh: 'true' } : {}) });
+export const exportLiveMetrics = (id, startDate, endDate) =>
+  `/api/websites/${id}/live-metrics/export?startDate=${startDate}&endDate=${endDate}`;
+
 export const getExecutive          = (id, days = 30)  => intel(id, 'executive', { days });
 export const compareAnalytics      = (id, days=30)    => intel(id, 'analytics/compare', { days });
 export const compareGSC            = (id, days=28)    => intel(id, 'gsc/compare', { days });

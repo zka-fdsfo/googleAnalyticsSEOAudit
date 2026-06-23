@@ -66,6 +66,7 @@ const runAuditAsync = async (auditId, url) => {
           loadTime: crawlData.loadTime,
           pageSize: crawlData.pageSize,
         }
+
       : {
           loadTime: crawlData.loadTime,
           pageSize: crawlData.pageSize,
@@ -123,6 +124,7 @@ const getAudit = async (req, res, next) => {
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found.' });
     }
+
     res.json({ audit });
   } catch (err) {
     next(err);
@@ -134,6 +136,7 @@ const getAuditHistory = async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
+
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const skip = (page - 1) * limit;
@@ -163,6 +166,7 @@ const deleteAudit = async (req, res, next) => {
     if (req.user && audit.userId?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Not authorized to delete this audit.' });
     }
+
     await Audit.findByIdAndDelete(req.params.id);
     res.json({ message: 'Audit deleted.' });
   } catch (err) {

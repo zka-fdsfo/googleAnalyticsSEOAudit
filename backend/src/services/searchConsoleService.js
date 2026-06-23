@@ -6,7 +6,18 @@ const listSearchConsoleSites = async (user) => {
   const searchconsole = google.searchconsole({ version: 'v1', auth });
 
   const response = await searchconsole.sites.list();
-  return (response.data.siteEntry || []).map((site) => ({
+
+  // ── Full raw response for debugging ───────────────────────────────────────
+  console.log('[GSC sites.list()] HTTP status:', response.status);
+  console.log('[GSC sites.list()] Raw response.data:', JSON.stringify(response.data, null, 2));
+
+  const entries = response.data.siteEntry || [];
+  console.log(`[GSC sites.list()] siteEntry count: ${entries.length}`);
+  entries.forEach((s, i) => {
+    console.log(`  [${i}] siteUrl="${s.siteUrl}"  permissionLevel="${s.permissionLevel}"`);
+  });
+
+  return entries.map((site) => ({
     siteUrl:         site.siteUrl,
     permissionLevel: site.permissionLevel,
   }));

@@ -1,22 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
+import { buildPresetRange, localToday } from '../../context/WebsiteContext';
 
-const PRESETS = [
-  { label: '7D',  days: 7   },
-  { label: '30D', days: 30  },
-  { label: '90D', days: 90  },
-  { label: '12M', days: 365 },
-];
-
-const today = () => new Date().toISOString().split('T')[0];
+// Predefined ranges — Today + completed-day presets
+const PRESETS = ['Today', '7D', '30D', '90D', '12M'];
 
 /**
  * DateRangePicker
- * value:    { days, label, startDate, endDate }  (from WebsiteContext.dateRange)
- * onChange: (dateRange) => void
  *
- * For presets  → startDate/endDate are null; backend uses `days` (relative from today).
- * For custom   → startDate/endDate are ISO strings; days = diff in calendar days.
+ * value:    { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD', label: string }
+ * onChange: (range) => void
+ *
+ * Preset date logic (centralised in buildPresetRange):
+ *   Today → [today, today]           — partial current-day data
+ *   7D    → [today-7,   yesterday]   — 7 completed days, NO today
+ *   30D   → [today-30,  yesterday]
+ *   90D   → [today-90,  yesterday]
+ *   12M   → [today-365, yesterday]
+ *
+ * Custom → user picks explicit start/end (unchanged from existing behaviour)
  */
 export default function DateRangePicker({ value, onChange, className = '' }) {
   const [showCustom, setShowCustom] = useState(false);
@@ -26,79 +28,86 @@ export default function DateRangePicker({ value, onChange, className = '' }) {
 
   // Close custom panel on outside click
   useEffect(() => {
-    const handler = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setShowCustom(false);
-      }
+    const h = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) setShowCustom(false);
     };
-    if (showCustom) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (showCustom) document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, [showCustom]);
 
-  const handlePreset = (preset) => {
+  const handlePreset = (label) => {
     setShowCustom(false);
-    onChange({ days: preset.days, label: preset.label, startDate: null, endDate: null });
+    onChange(buildPresetRange(label));
   };
 
   const applyCustom = () => {
-    if (!start || !end || end <= start) return;
-    const days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / 86_400_000));
-    onChange({ days, label: 'Custom', startDate: start, endDate: end });
+    if (!start || !end || end < start) return;
+    onChange({ startDate: start, endDate: end, label: 'Custom' });
     setShowCustom(false);
   };
 
   const openCustom = () => {
-    // Pre-fill with current range when opening
-    if (!showCustom && value?.startDate) {
+    // Pre-fill inputs with current custom range when re-opening
+    if (!showCustom && value?.label === 'Custom') {
       setStart(value.startDate);
       setEnd(value.endDate);
     }
     setShowCustom((v) => !v);
   };
 
-  const isCustomActive = value?.label === 'Custom';
-  const customDays = start && end && end > start
-    ? Math.ceil((new Date(end) - new Date(start)) / 86_400_000)
+  const isCustom   = value?.label === 'Custom';
+  const customDays = start && end && end >= start
+    ? Math.round((new Date(end) - new Date(start)) / 86_400_000) + 1
     : null;
 
   return (
-    <div className={`relative ${className}`} ref={panelRef}>
-      {/* Preset buttons + Custom trigger */}
-      <div className="flex gap-1">
-        {PRESETS.map((p) => (
+    <div className={`relative flex items-center gap-1 ${className}`} ref={panelRef}>
+      {/* ── Preset + Today buttons ─────────────────────────────────────── */}
+      {PRESETS.map((label) => {
+        const isActive = value?.label === label;
+        // "Today" gets a distinct accent colour to show it's partial data
+        const activeStyle = label === 'Today'
+          ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+          : 'bg-brand-500 text-white shadow-lg shadow-brand-500/20';
+        return (
           <button
-            key={p.label}
-            onClick={() => handlePreset(p)}
+            key={label}
+            onClick={() => handlePreset(label)}
             className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${
-              value?.days === p.days && !isCustomActive
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              isActive
+                ? activeStyle
                 : 'bg-dark-700 text-slate-400 hover:text-white hover:bg-dark-600'
             }`}
           >
-            {p.label}
+            {label}
           </button>
-        ))}
+        );
+      })}
 
-        <button
-          onClick={openCustom}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${
-            isCustomActive || showCustom
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-              : 'bg-dark-700 text-slate-400 hover:text-white hover:bg-dark-600'
-          }`}
-        >
-          <Calendar size={11} />
-          {isCustomActive
-            ? `${value.startDate} – ${value.endDate}`
-            : 'Custom'}
-          <ChevronDown size={10} className={showCustom ? 'rotate-180 transition-transform' : 'transition-transform'} />
-        </button>
-      </div>
+      {/* ── Custom date range trigger ──────────────────────────────────── */}
+      <button
+        onClick={openCustom}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${
+          isCustom || showCustom
+            ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+            : 'bg-dark-700 text-slate-400 hover:text-white hover:bg-dark-600'
+        }`}
+      >
+        <Calendar size={11} />
+        {isCustom
+          ? `${value.startDate} – ${value.endDate}`
+          : 'Custom'}
+        <ChevronDown
+          size={10}
+          className={showCustom ? 'rotate-180 transition-transform' : 'transition-transform'}
+        />
+      </button>
 
-      {/* Custom range panel */}
+      {/* ── Custom panel ──────────────────────────────────────────────── */}
       {showCustom && (
         <div className="absolute right-0 top-full mt-2 z-50 bg-dark-800 border border-dark-700 rounded-xl p-4 shadow-2xl w-72">
-          <p className="text-xs font-semibold text-slate-300 mb-3">Custom date range</p>
+          <p className="text-xs font-semibold text-slate-300 mb-1">Custom date range</p>
+          <p className="text-xs text-slate-500 mb-3">Pick any start and end date</p>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
@@ -106,9 +115,9 @@ export default function DateRangePicker({ value, onChange, className = '' }) {
               <input
                 type="date"
                 value={start}
-                max={end || today()}
+                max={end || localToday()}
                 onChange={(e) => setStart(e.target.value)}
-                className="w-full bg-dark-700 border border-dark-600 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition-colors"
+                className="w-full bg-dark-700 border border-dark-600 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -117,20 +126,20 @@ export default function DateRangePicker({ value, onChange, className = '' }) {
                 type="date"
                 value={end}
                 min={start}
-                max={today()}
+                max={localToday()}
                 onChange={(e) => setEnd(e.target.value)}
-                className="w-full bg-dark-700 border border-dark-600 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition-colors"
+                className="w-full bg-dark-700 border border-dark-600 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
               />
             </div>
           </div>
 
           {customDays && (
-            <p className="text-xs text-slate-500 mb-3 text-center">{customDays} days selected</p>
+            <p className="text-xs text-slate-500 mb-3 text-center">{customDays} day{customDays !== 1 ? 's' : ''}</p>
           )}
 
           <button
             onClick={applyCustom}
-            disabled={!start || !end || end <= start}
+            disabled={!start || !end || end < start}
             className="w-full btn-primary text-xs py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Apply range
