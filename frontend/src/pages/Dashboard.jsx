@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState ,useEffect} from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -102,6 +102,10 @@ export default function Dashboard() {
   const { startDate, endDate, label } = dateRange;
   const id     = activeWebsite?._id;
   const isToday = label === 'Today';
+  useEffect(() => {
+    const apiURL = import.meta.env.VITE_BACKEND_URL;
+    console.log('Base API URL:', apiURL);
+  }, []);
 
   // ── Main period query ────────────────────────────────────────────────────
   const {
