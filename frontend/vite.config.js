@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       '/api': {
       //  target: 'http://localhost:5000',
-         target: 'http://seodashboard-fullstack.vercel.app',
+         target: 'https://seodashboard-fullstack.vercel.app',
         changeOrigin: true,
       },
     },
