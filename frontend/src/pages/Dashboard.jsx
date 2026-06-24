@@ -556,7 +556,7 @@ function GSCDiagnosticCard({ gsc, activeWebsite, discovering, onRediscover, onLi
             <p>
               The <strong>Google Search Console API</strong> is not enabled in your Google Cloud project.{' '}
               <a
-                href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com"
+                href={import.meta.env.VITE_GOOGLE_SC_API_ENABLE_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="underline text-brand-400"
@@ -572,7 +572,7 @@ function GSCDiagnosticCard({ gsc, activeWebsite, discovering, onRediscover, onLi
           <p><strong>No Search Console properties found</strong> in your Google account.</p>
           <p>
             Add and verify your website at{' '}
-            <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="underline">
+            <a href={import.meta.env.VITE_GOOGLE_SEARCH_CONSOLE_URL} target="_blank" rel="noreferrer" className="underline">
               search.google.com/search-console
             </a>
             , then come back and try again.
@@ -676,7 +676,7 @@ function GSCDiagnosticCard({ gsc, activeWebsite, discovering, onRediscover, onLi
                 <p>
                   Go to{' '}
                   <a
-                    href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com"
+                    href={import.meta.env.VITE_GOOGLE_SC_API_ENABLE_URL}
                     target="_blank"
                     rel="noreferrer"
                     className="underline text-brand-400"

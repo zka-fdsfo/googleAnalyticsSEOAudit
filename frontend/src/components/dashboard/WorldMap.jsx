@@ -5,7 +5,7 @@ import { scaleLinear } from 'd3-scale';
 import { getGeoSnapshot } from '../../services/api';
 import Loader from '../common/Loader';
 
-const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+const GEO_URL = import.meta.env.VITE_GEO_JSON_URL;
 
 // Country name → ISO numeric (used by world-atlas topojson)
 const COUNTRY_NAME_TO_ISO = {

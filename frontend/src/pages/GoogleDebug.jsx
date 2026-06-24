@@ -7,8 +7,8 @@ import {
 import { getGoogleDebug } from '../services/api';
 
 const STATUS_REQUIRED_SCOPES = [
-  'https://www.googleapis.com/auth/analytics.readonly',
-  'https://www.googleapis.com/auth/webmasters.readonly',
+  import.meta.env.VITE_GA4_SCOPE,
+  import.meta.env.VITE_GSC_SCOPE,
   'email',
   'profile',
 ];
@@ -135,7 +135,7 @@ export default function GoogleDebug() {
                   <div className="space-y-1.5">
                     {STATUS_REQUIRED_SCOPES.map((scope) => {
                       const granted = data.tokenInfo.scopes?.some((s) => s === scope || scope.includes(s));
-                      const short   = scope.replace('https://www.googleapis.com/auth/', '');
+                      const short   = scope?.replace(import.meta.env.VITE_GOOGLEAPIS_AUTH_PREFIX ?? 'https://www.googleapis.com/auth/', '') ?? scope;
                       return (
                         <div key={scope} className="flex items-center gap-2 text-xs font-mono">
                           {granted
@@ -233,7 +233,7 @@ export default function GoogleDebug() {
                 {data.analytics.status === 'error' && (
                   <FixItem>
                     <strong>Analytics API error</strong> — In{' '}
-                    <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noreferrer" className="text-brand-400 underline">
+                    <a href={import.meta.env.VITE_GOOGLE_CLOUD_CONSOLE_URL} target="_blank" rel="noreferrer" className="text-brand-400 underline">
                       Google Cloud Console → APIs Library
                     </a>
                     , enable <strong>Google Analytics Admin API</strong> and <strong>Google Analytics Data API</strong>.
@@ -244,7 +244,7 @@ export default function GoogleDebug() {
                     <strong>Search Console API error</strong> — Enable{' '}
                     <strong>Google Search Console API</strong> in Google Cloud Console.
                     Also verify your site at{' '}
-                    <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="text-brand-400 underline">
+                    <a href={import.meta.env.VITE_GOOGLE_SEARCH_CONSOLE_URL} target="_blank" rel="noreferrer" className="text-brand-400 underline">
                       search.google.com/search-console
                     </a>.
                   </FixItem>
