@@ -139,7 +139,7 @@ export default function Settings() {
               Connect your Google account to access Google Analytics 4 and Search Console data directly in your dashboard.
             </p>
             <a
-              href="/api/auth/google"
+              href={`${import.meta.env.VITE_BACKEND_URL}/api/auth/google`}
               className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-white text-slate-800 rounded-xl font-semibold text-sm hover:bg-slate-100 transition-all"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5">

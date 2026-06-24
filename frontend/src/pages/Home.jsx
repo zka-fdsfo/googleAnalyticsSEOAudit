@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Zap, Shield, BarChart3, Globe, CheckCircle, ArrowRight } from 'lucide-react';
 import { startAudit } from '../services/api';
@@ -18,7 +18,10 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+  useEffect(() => {
+    const apiURL = import.meta.env.VITE_BACKEND_URL;
+    console.log('Base API URL:', apiURL);
+  }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = url.trim();
