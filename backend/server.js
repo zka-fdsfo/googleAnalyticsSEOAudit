@@ -29,12 +29,28 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 connectDB();
 
+// Trust the first proxy in front of Express (required on Railway/Render/Heroku).
+// Without this, session cookies with secure:true are silently dropped because
+// Express sees the connection as HTTP (the TLS terminates at the reverse proxy).
+app.set('trust proxy', 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 
+// Support comma-separated origins in FRONTEND_URL so you can whitelist
+// both the Vercel preview URL and the production URL without redeploying.
+// e.g.  FRONTEND_URL=https://seodashboard-fullstack-pydx.vercel.app,http://localhost:5173
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim());
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin "${origin}" is not allowed.`));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -73,11 +89,18 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
+    // secure:true requires HTTPS — set only in production.
+    // Works because app.set('trust proxy', 1) is above.
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production'
       ? 'none'
       : 'lax',
     httpOnly: true,
+    // 'lax' allows the session cookie to be sent when Google redirects back
+    // to the callback URL (a cross-site navigation, not a cross-site POST).
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    // Session only needs to outlast the OAuth round-trip (~30 s).
+    // Keeping it at 24 h is fine for robustness.
     maxAge: 24 * 60 * 60 * 1000,
   },
 }));
