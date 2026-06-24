@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Search, LogOut, Settings, LayoutDashboard, Menu, X, Zap } from 'lucide-react';
+import { BarChart3, Search, LogOut, Settings, LayoutDashboard, Menu, X, Zap, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import WebsiteSwitcher from './WebsiteSwitcher';
 
@@ -20,9 +20,10 @@ export default function Navbar() {
 
   const navLinks = isAuthenticated
     ? [
-        { to: '/', icon: <Search size={16} />, label: 'Analyze' },
-        { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
-        { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
+        { to: '/',          icon: <Search size={16} />,       label: 'Analyze'   },
+        { to: '/dashboard', icon: <LayoutDashboard size={16}/>,label: 'Dashboard' },
+        { to: '/local-seo', icon: <MapPin size={16} />,       label: 'Local SEO' },
+        { to: '/settings',  icon: <Settings size={16} />,     label: 'Settings'  },
       ]
     : [{ to: '/', icon: <Search size={16} />, label: 'Analyze' }];
 

@@ -15,8 +15,9 @@ const authRoutes = require('./src/routes/auth');
 const auditRoutes = require('./src/routes/audit');
 const analyticsRoutes = require('./src/routes/analytics');
 const searchConsoleRoutes = require('./src/routes/searchConsole');
-const websiteRoutes = require('./src/routes/websites');
+const websiteRoutes  = require('./src/routes/websites');
 const gscDebugRoutes = require('./src/routes/gscDebug');
+const localSeoRoutes = require('./src/routes/localSeo');
 const { errorHandler } = require('./src/middleware/errorHandler');
 const { startScheduler } = require('./src/jobs/scheduler');
 
@@ -70,6 +71,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/search-console', searchConsoleRoutes);
 app.use('/api/websites', websiteRoutes);
 app.use('/api/debug/gsc', gscDebugRoutes);
+// Local SEO & Maps Ranking — completely independent from GA4 / GSC
+app.use('/api/local-seo/:websiteId', localSeoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', version: '1.0.0', timestamp: new Date().toISOString() });

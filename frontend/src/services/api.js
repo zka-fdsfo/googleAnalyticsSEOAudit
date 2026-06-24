@@ -43,6 +43,20 @@ export const getWebsiteGSCTrend       = (id, d)  => api.get(`/websites/${id}/gsc
 const intel = (id, path, params) => api.get(`/websites/${id}/${path}`, { params });
 const intelPatch = (id, path, data) => api.patch(`/websites/${id}/${path}`, data);
 
+// ── Local SEO & Maps Ranking (standalone module, not related to GA4/GSC) ─────
+const lseo = (websiteId, path, params) =>
+  api.get(`/local-seo/${websiteId}/${path}`, { params });
+
+export const getLocalSeoOverview   = (id)           => lseo(id, 'overview');
+export const getLocalSeoRankings   = (id, p = {})   => lseo(id, 'rankings', p);
+export const addLocalSeoRanking    = (id, data)      => api.post(`/local-seo/${id}/rankings`, data);
+export const getLocalSeoKeywords   = (id)            => lseo(id, 'keywords');
+export const addLocalSeoKeyword    = (id, data)      => api.post(`/local-seo/${id}/keywords`, data);
+export const deleteLocalSeoKeyword = (id, kwId)      => api.delete(`/local-seo/${id}/keywords/${kwId}`);
+export const getLocalSeoTrends     = (id, p = {})   => lseo(id, 'trends', p);
+export const getLocalSeoVisibility = (id, p = {})   => lseo(id, 'visibility', p);
+export const getLocalSeoInsights   = (id)            => lseo(id, 'insights');
+
 // ── GSC debug & manual linking ────────────────────────────────────────────────
 // GET /api/debug/gsc  — full token/scope/API/DB diagnostic
 export const debugGSC         = ()           => api.get('/debug/gsc');

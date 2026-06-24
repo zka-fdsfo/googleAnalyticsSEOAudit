@@ -7,6 +7,7 @@ import Navbar from './components/common/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import LocalSeo   from './pages/LocalSeo';
 import AuditReport from './pages/AuditReport';
 import Settings from './pages/Settings';
 import GoogleDebug from './pages/GoogleDebug';
@@ -43,6 +44,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/local-seo"
+                  element={
+                    <ProtectedRoute>
+                      <LocalSeo />
                     </ProtectedRoute>
                   }
                 />
