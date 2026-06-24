@@ -71,14 +71,30 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
+// app.use(session({
+//   secret: process.env.SESSION_SECRET || 'seo-audit-session-secret',
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {
+//     secure: process.env.NODE_ENV === 'production',
+//     httpOnly: true,
+//     maxAge: 24 * 60 * 60 * 1000,
+//   },
+// }));
+
+app.set('trust proxy', 1);
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'seo-audit-session-secret',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     // secure:true requires HTTPS — set only in production.
     // Works because app.set('trust proxy', 1) is above.
     secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production'
+      ? 'none'
+      : 'lax',
     httpOnly: true,
     // 'lax' allows the session cookie to be sent when Google redirects back
     // to the callback URL (a cross-site navigation, not a cross-site POST).

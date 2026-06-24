@@ -4,6 +4,7 @@ import { Eye, EyeOff, Zap, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
+
 export default function LoginPage({ mode = 'login' }) {
   const [isRegister, setIsRegister] = useState(mode === 'register');
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
