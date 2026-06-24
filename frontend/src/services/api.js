@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -70,7 +70,7 @@ export const linkGSCProperty  = (id, siteUrl)=> api.put(`/websites/${id}/gsc-lin
 export const getLiveMetrics = (id, startDate, endDate, { forceRefresh = false } = {}) =>
   intel(id, 'live-metrics', { startDate, endDate, ...(forceRefresh ? { forceRefresh: 'true' } : {}) });
 export const exportLiveMetrics = (id, startDate, endDate) =>
-  `/api/websites/${id}/live-metrics/export?startDate=${startDate}&endDate=${endDate}`;
+  `${import.meta.env.VITE_API_BASE_URL || '/api'}/websites/${id}/live-metrics/export?startDate=${startDate}&endDate=${endDate}`;
 
 export const getExecutive          = (id, days = 30)  => intel(id, 'executive', { days });
 export const compareAnalytics      = (id, days=30)    => intel(id, 'analytics/compare', { days });

@@ -118,7 +118,7 @@ export default function SearchConsolePanel({ websiteId, website, days = 30 }) {
           <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
           <div>
             <strong>No organic traffic recorded</strong> — verify that {website?.gsc?.siteUrl} has data in{' '}
-            <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="underline">
+            <a href={import.meta.env.VITE_GOOGLE_SEARCH_CONSOLE_URL} target="_blank" rel="noreferrer" className="underline">
               Search Console
             </a>.
           </div>
