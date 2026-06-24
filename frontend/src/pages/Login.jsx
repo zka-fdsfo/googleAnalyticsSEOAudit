@@ -54,7 +54,9 @@ export default function LoginPage({ mode = 'login' }) {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
+    // window.location.href = '/api/auth/google';
+    window.location.href =
+  `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
   };
 
   return (
